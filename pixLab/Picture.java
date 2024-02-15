@@ -453,13 +453,18 @@ public class Picture extends SimplePicture
    *  @return	Picture	output (white for no edge, black for edge)
    */
   public Picture greenScreen() {
-	//	Threshold for green detection
-	final int threshold = 30;
 	//	Position of cat1
-	final int cat1Row = 350;
-	final int cat1Col = 150;
+	int cat1Row = 300;
+	int cat1Col = 150;
+	int cat1Shrink = 2;
+	//	Position of cat2
+	int cat2Row = 400;
+	int cat2Col = 500;
+	int cat2Shrink = 3;
 	//	To use when averaging pixels
 	int[][] check = new int[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+	int[][] check3 = new int[][]{{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 1},
+			{1, 2}, {2, 0}, {2, 1}, {2, 2}};
 	
 	//	Initialize pictures and output
 	Pixel[][] pixels = this.getPixels2D();
@@ -474,28 +479,134 @@ public class Picture extends SimplePicture
 	//	Add first cat
 	Picture cat1 = new Picture("GreenScreenCatMouse/kitten1GreenScreen.jpg");
 	Pixel[][] cat1Pixels = cat1.getPixels2D();
-	//	Scale down by factor of 2 on each axis
-	for (int r = 0; r < cat1Pixels.length / 2; r++) {
-		for (int c = 0; c < cat1Pixels[0].length / 2; c++) {
-			//	Find averages
+	//	First cat but all green pixels are made completely green
+	Picture noGreenCat1 = new Picture(cat1Pixels.length, cat1Pixels[0].length);
+	Pixel[][] noGreenCat1Pixels = noGreenCat1.getPixels2D();
+	//	Set greens
+	for (int r = 0; r < cat1Pixels.length; r++) {
+		for (int c = 0; c < cat1Pixels[0].length; c++) {
+			//	Get color info
+			int red = cat1Pixels[r][c].getRed();
+			int green = cat1Pixels[r][c].getGreen();
+			int blue = cat1Pixels[r][c].getBlue();
+			double pixColorDistance = Pixel.colorDistance(new Color(red, 
+					green, blue), new Color(51, 204, 51));
+			//	Set greens to 0, 255, 0
+			if (pixColorDistance < 100) {
+				noGreenCat1Pixels[r][c].setColor(new Color(0, 255, 0));
+			} //	Transfer other pictures regularly
+			else {
+				noGreenCat1Pixels[r][c].setColor(cat1Pixels[r][c].getColor());
+			}
+		}
+	}
+	//	Scale down by factor of cat1Shrink on each axis and get rid of green
+	for (int r = 0; r < cat1Pixels.length / cat1Shrink; r++) {
+		for (int c = 0; c < cat1Pixels[0].length / cat1Shrink; c++) {
+			//	Find averages of 2x2 pixel areas
 			int red = 0;
 			int green = 0;
 			int blue = 0;
 			int total = 0;
 			for (int[] k: check) {
-				if (2 * r + k[1] < cat1Pixels.length && 2 * c + k[0] < cat1Pixels[0].length) {
-					red += cat1Pixels[2 * r + k[1]][2 * c + k[0]].getRed();
-					green += cat1Pixels[2 * r + k[1]][2 * c + k[0]].getGreen();
-					blue += cat1Pixels[2 * r + k[1]][2 * c + k[0]].getBlue();
+				//	Dont count greens in the average
+				int tempRed = noGreenCat1Pixels[cat1Shrink * r + k[1]]
+								[cat1Shrink * c + k[0]].getRed();
+				int tempGreen = noGreenCat1Pixels[cat1Shrink * r + k[1]]
+								[cat1Shrink * c + k[0]].getGreen();
+				int tempBlue = noGreenCat1Pixels[cat1Shrink * r + k[1]]
+								[cat1Shrink * c + k[0]].getBlue();
+				double pixColorDistance = Pixel.colorDistance(new Color(tempRed, 
+					tempGreen, tempBlue), new Color(0, 255, 0));
+				if (cat1Shrink * r + k[1] < cat1Pixels.length && cat1Shrink * c + k[0] < 
+						cat1Pixels[0].length && pixColorDistance > 150) {
+					red += tempRed;
+					green += tempGreen;
+					blue += tempBlue;
 					total ++;
 				}
 			}
-			resultPixels[r + cat1Row][c + cat1Col].setRed(red / total);
-			resultPixels[r + cat1Row][c + cat1Col].setGreen(green / total);
-			resultPixels[r + cat1Row][c + cat1Col].setBlue(blue / total);
+			if (total != 0) {
+				red /= total;
+				green /= total;
+				blue /= total;
+				double pixColorDistance = Pixel.colorDistance(new Color(red, 
+						green, blue), new Color(0, 255, 0));
+				if (pixColorDistance >= 100){
+					if (pixColorDistance <= 100) green -= 50;
+					resultPixels[r + cat1Row][c + cat1Col].setRed(red);
+					resultPixels[r + cat1Row][c + cat1Col].setGreen(green);
+					resultPixels[r + cat1Row][c + cat1Col].setBlue(blue);
+				}
+			}
 		}
 	}
 	
+	//	Add second cat
+	Picture cat2 = new Picture("GreenScreenCatMouse/kitten2GreenScreen.jpg");
+	Pixel[][] cat2Pixels = cat2.getPixels2D();
+	//	First cat but all green pixels are made completely green
+	Picture noGreenCat2 = new Picture(cat2Pixels.length, cat2Pixels[0].length);
+	Pixel[][] noGreenCat2Pixels = noGreenCat2.getPixels2D();
+	//	Set greens
+	for (int r = 0; r < cat2Pixels.length; r++) {
+		for (int c = 0; c < cat2Pixels[0].length; c++) {
+			//	Get color info
+			int red = cat2Pixels[r][c].getRed();
+			int green = cat2Pixels[r][c].getGreen();
+			int blue = cat2Pixels[r][c].getBlue();
+			double pixColorDistance = Pixel.colorDistance(new Color(red, 
+					green, blue), new Color(51, 204, 51));
+			//	Set greens to 0, 255, 0
+			if (pixColorDistance < 100) {
+				noGreenCat2Pixels[r][c].setColor(new Color(0, 255, 0));
+			} //	Transfer other pictures regularly
+			else {
+				noGreenCat2Pixels[r][c].setColor(cat2Pixels[r][c].getColor());
+			}
+		}
+	}
+	//	Scale down by factor of cat2Shrink on each axis and get rid of green
+	for (int r = 0; r < cat2Pixels.length / cat2Shrink; r++) {
+		for (int c = 0; c < cat2Pixels[0].length / cat2Shrink; c++) {
+			//	Find averages of 2x2 pixel areas
+			int red = 0;
+			int green = 0;
+			int blue = 0;
+			int total = 0;
+			for (int[] k: check) {
+				//	Dont count greens in the average
+				int tempRed = noGreenCat2Pixels[cat2Shrink * r + k[1]]
+								[cat2Shrink * c + k[0]].getRed();
+				int tempGreen = noGreenCat2Pixels[cat2Shrink * r + k[1]]
+								[cat2Shrink * c + k[0]].getGreen();
+				int tempBlue = noGreenCat2Pixels[cat2Shrink * r + k[1]]
+								[cat2Shrink * c + k[0]].getBlue();
+				double pixColorDistance = Pixel.colorDistance(new Color(tempRed, 
+					tempGreen, tempBlue), new Color(0, 255, 0));
+				if (cat2Shrink * r + k[1] < cat2Pixels.length && cat2Shrink * c + k[0] < 
+						cat2Pixels[0].length && pixColorDistance > 150) {
+					red += tempRed;
+					green += tempGreen;
+					blue += tempBlue;
+					total ++;
+				}
+			}
+			if (total != 0) {
+				red /= total;
+				green /= total;
+				blue /= total;
+				double pixColorDistance = Pixel.colorDistance(new Color(red, 
+						green, blue), new Color(0, 255, 0));
+				if (pixColorDistance >= 100){
+					if (pixColorDistance <= 100) green -= 50;
+					resultPixels[r + cat2Row][c + cat2Col].setRed(red);
+					resultPixels[r + cat2Row][c + cat2Col].setGreen(green);
+					resultPixels[r + cat2Row][c + cat2Col].setBlue(blue);
+				}
+			}
+		}
+	}
 	return result;
   }
   
